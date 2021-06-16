@@ -1,2 +1,1 @@
-Print("Hello")
-Print("Change")
+Print("Hi")
