@@ -1,0 +1,214 @@
+version: '3.8'
+
+services:
+  # MongoDB Database
+  mongodb:
+    image: mongo:7.0
+    container_name: payment-switch-mongodb
+    restart: unless-stopped
+    environment:
+      MONGO_INITDB_ROOT_USERNAME: admin
+      MONGO_INITDB_ROOT_PASSWORD: ${MONGO_ROOT_PASSWORD:-paymentswitch123}
+      MONGO_INITDB_DATABASE: payment_switch
+    ports:
+      - "27017:27017"
+    volumes:
+      - mongodb_data:/data/db
+      - ./scripts/mongo-init.js:/docker-entrypoint-initdb.d/mongo-init.js:ro
+    networks:
+      - payment-switch-network
+
+  # Redis for Caching and Session Management
+  redis:
+    image: redis:7.2-alpine
+    container_name: payment-switch-redis
+    restart: unless-stopped
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    networks:
+      - payment-switch-network
+
+  # Node-RED for PSP Integration Workflows
+  node-red:
+    image: nodered/node-red:latest
+    container_name: payment-switch-node-red
+    restart: unless-stopped
+    environment:
+      - TZ=UTC
+    ports:
+      - "1880:1880"
+    volumes:
+      - node_red_data:/data
+      - ./node-red/flows:/data/flows
+      - ./node-red/settings.js:/data/settings.js
+    depends_on:
+      - mongodb
+      - redis
+    networks:
+      - payment-switch-network
+
+  # Transaction Processor Service
+  transaction-processor:
+    build:
+      context: ./services/transaction-processor
+      dockerfile: Dockerfile
+    container_name: payment-switch-transaction-processor
+    restart: unless-stopped
+    environment:
+      - NODE_ENV=production
+      - MONGODB_URI=mongodb://admin:${MONGO_ROOT_PASSWORD:-paymentswitch123}@mongodb:27017/payment_switch?authSource=admin
+      - REDIS_URI=redis://redis:6379
+      - PORT=3001
+    ports:
+      - "3001:3001"
+    depends_on:
+      - mongodb
+      - redis
+    networks:
+      - payment-switch-network
+    volumes:
+      - ./logs:/app/logs
+
+  # Routing Engine Service
+  routing-engine:
+    build:
+      context: ./services/routing-engine
+      dockerfile: Dockerfile
+    container_name: payment-switch-routing-engine
+    restart: unless-stopped
+    environment:
+      - NODE_ENV=production
+      - MONGODB_URI=mongodb://admin:${MONGO_ROOT_PASSWORD:-paymentswitch123}@mongodb:27017/payment_switch?authSource=admin
+      - REDIS_URI=redis://redis:6379
+      - PORT=3002
+    ports:
+      - "3002:3002"
+    depends_on:
+      - mongodb
+      - redis
+    networks:
+      - payment-switch-network
+    volumes:
+      - ./logs:/app/logs
+
+  # PSP Gateway Service
+  psp-gateway:
+    build:
+      context: ./services/psp-gateway
+      dockerfile: Dockerfile
+    container_name: payment-switch-psp-gateway
+    restart: unless-stopped
+    environment:
+      - NODE_ENV=production
+      - MONGODB_URI=mongodb://admin:${MONGO_ROOT_PASSWORD:-paymentswitch123}@mongodb:27017/payment_switch?authSource=admin
+      - REDIS_URI=redis://redis:6379
+      - PORT=3003
+    ports:
+      - "3003:3003"
+    depends_on:
+      - mongodb
+      - redis
+      - node-red
+    networks:
+      - payment-switch-network
+    volumes:
+      - ./logs:/app/logs
+
+  # Management API Service
+  management-api:
+    build:
+      context: ./services/management-api
+      dockerfile: Dockerfile
+    container_name: payment-switch-management-api
+    restart: unless-stopped
+    environment:
+      - NODE_ENV=production
+      - MONGODB_URI=mongodb://admin:${MONGO_ROOT_PASSWORD:-paymentswitch123}@mongodb:27017/payment_switch?authSource=admin
+      - REDIS_URI=redis://redis:6379
+      - PORT=3004
+    ports:
+      - "3004:3004"
+    depends_on:
+      - mongodb
+      - redis
+    networks:
+      - payment-switch-network
+    volumes:
+      - ./logs:/app/logs
+
+  # Monitoring Service
+  monitoring:
+    build:
+      context: ./services/monitoring
+      dockerfile: Dockerfile
+    container_name: payment-switch-monitoring
+    restart: unless-stopped
+    environment:
+      - NODE_ENV=production
+      - MONGODB_URI=mongodb://admin:${MONGO_ROOT_PASSWORD:-paymentswitch123}@mongodb:27017/payment_switch?authSource=admin
+      - REDIS_URI=redis://redis:6379
+      - PORT=3005
+    ports:
+      - "3005:3005"
+    depends_on:
+      - mongodb
+      - redis
+    networks:
+      - payment-switch-network
+    volumes:
+      - ./logs:/app/logs
+
+  # Frontend Web Application
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    container_name: payment-switch-frontend
+    restart: unless-stopped
+    ports:
+      - "8080:80"
+    depends_on:
+      - management-api
+      - monitoring
+    networks:
+      - payment-switch-network
+
+  # Nginx Load Balancer and Reverse Proxy
+  nginx:
+    image: nginx:alpine
+    container_name: payment-switch-nginx
+    restart: unless-stopped
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./nginx/nginx.conf:/etc/nginx/nginx.conf:ro
+      - ./nginx/ssl:/etc/nginx/ssl:ro
+      - ./logs/nginx:/var/log/nginx
+    depends_on:
+      - transaction-processor
+      - routing-engine
+      - psp-gateway
+      - management-api
+      - monitoring
+      - frontend
+    networks:
+      - payment-switch-network
+
+volumes:
+  mongodb_data:
+    driver: local
+  redis_data:
+    driver: local
+  node_red_data:
+    driver: local
+
+networks:
+  payment-switch-network:
+    driver: bridge
+    ipam:
+      config:
+        - subnet: 172.20.0.0/16
+

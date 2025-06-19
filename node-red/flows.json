@@ -1,0 +1,217 @@
+[
+    {
+        "id": "payment-switch-main",
+        "type": "tab",
+        "label": "Payment Switch Main",
+        "disabled": false,
+        "info": "Main flow for payment switch operations and PSP integrations",
+        "env": []
+    },
+    {
+        "id": "psp-integrations",
+        "type": "tab",
+        "label": "PSP Integrations",
+        "disabled": false,
+        "info": "Payment Service Provider integration flows",
+        "env": []
+    },
+    {
+        "id": "message-transformation",
+        "type": "tab",
+        "label": "Message Transformation",
+        "disabled": false,
+        "info": "ISO 8583, ISO 20022 and other message format transformations",
+        "env": []
+    },
+    {
+        "id": "monitoring-alerts",
+        "type": "tab",
+        "label": "Monitoring & Alerts",
+        "disabled": false,
+        "info": "System monitoring, health checks, and alert notifications",
+        "env": []
+    },
+    {
+        "id": "http-in-transaction",
+        "type": "http in",
+        "z": "payment-switch-main",
+        "name": "Transaction Endpoint",
+        "url": "/api/transaction",
+        "method": "post",
+        "upload": false,
+        "swaggerDoc": "",
+        "x": 180,
+        "y": 100,
+        "wires": [["validate-transaction"]]
+    },
+    {
+        "id": "validate-transaction",
+        "type": "function",
+        "z": "payment-switch-main",
+        "name": "Validate Transaction",
+        "func": "// Basic transaction validation\nconst transaction = msg.payload;\n\n// Check required fields\nif (!transaction.amount || !transaction.currency || !transaction.merchantId) {\n    msg.statusCode = 400;\n    msg.payload = {\n        error: 'Missing required fields',\n        code: 'VALIDATION_ERROR'\n    };\n    return [null, msg];\n}\n\n// Validate amount\nif (transaction.amount <= 0) {\n    msg.statusCode = 400;\n    msg.payload = {\n        error: 'Invalid amount',\n        code: 'INVALID_AMOUNT'\n    };\n    return [null, msg];\n}\n\n// Add transaction ID and timestamp\ntransaction.transactionId = require('crypto').randomUUID();\ntransaction.timestamp = new Date().toISOString();\ntransaction.status = 'PENDING';\n\nmsg.payload = transaction;\nreturn [msg, null];",
+        "outputs": 2,
+        "noerr": 0,
+        "initialize": "",
+        "finalize": "",
+        "libs": [],
+        "x": 400,
+        "y": 100,
+        "wires": [["route-transaction"], ["http-response-error"]]
+    },
+    {
+        "id": "route-transaction",
+        "type": "http request",
+        "z": "payment-switch-main",
+        "name": "Route Transaction",
+        "method": "POST",
+        "ret": "obj",
+        "paytoqs": "ignore",
+        "url": "http://routing-engine:3002/api/route",
+        "tls": "",
+        "persist": false,
+        "proxy": "",
+        "authType": "",
+        "senderr": false,
+        "x": 620,
+        "y": 100,
+        "wires": [["process-routing-response"]]
+    },
+    {
+        "id": "process-routing-response",
+        "type": "function",
+        "z": "payment-switch-main",
+        "name": "Process Routing Response",
+        "func": "const routingResponse = msg.payload;\nconst transaction = msg.req.body;\n\nif (routingResponse.selectedPSP) {\n    // Store PSP selection in transaction\n    transaction.selectedPSP = routingResponse.selectedPSP;\n    transaction.routingReason = routingResponse.reason;\n    \n    msg.payload = transaction;\n    return [msg, null];\n} else {\n    // No PSP available\n    msg.statusCode = 503;\n    msg.payload = {\n        error: 'No PSP available',\n        code: 'NO_PSP_AVAILABLE',\n        transactionId: transaction.transactionId\n    };\n    return [null, msg];\n}",
+        "outputs": 2,
+        "noerr": 0,
+        "initialize": "",
+        "finalize": "",
+        "libs": [],
+        "x": 860,
+        "y": 100,
+        "wires": [["send-to-psp"], ["http-response-error"]]
+    },
+    {
+        "id": "send-to-psp",
+        "type": "http request",
+        "z": "payment-switch-main",
+        "name": "Send to PSP Gateway",
+        "method": "POST",
+        "ret": "obj",
+        "paytoqs": "ignore",
+        "url": "http://psp-gateway:3003/api/process",
+        "tls": "",
+        "persist": false,
+        "proxy": "",
+        "authType": "",
+        "senderr": false,
+        "x": 1100,
+        "y": 100,
+        "wires": [["http-response-success"]]
+    },
+    {
+        "id": "http-response-success",
+        "type": "http response",
+        "z": "payment-switch-main",
+        "name": "Success Response",
+        "statusCode": "200",
+        "headers": {},
+        "x": 1320,
+        "y": 100,
+        "wires": []
+    },
+    {
+        "id": "http-response-error",
+        "type": "http response",
+        "z": "payment-switch-main",
+        "name": "Error Response",
+        "statusCode": "",
+        "headers": {},
+        "x": 1320,
+        "y": 200,
+        "wires": []
+    },
+    {
+        "id": "visa-integration",
+        "type": "subflow",
+        "name": "Visa Integration",
+        "info": "Handles Visa payment processing",
+        "category": "PSP",
+        "in": [
+            {
+                "x": 40,
+                "y": 40,
+                "wires": [
+                    {
+                        "id": "visa-transform"
+                    }
+                ]
+            }
+        ],
+        "out": [
+            {
+                "x": 780,
+                "y": 40,
+                "wires": [
+                    {
+                        "id": "visa-response",
+                        "port": 0
+                    }
+                ]
+            }
+        ],
+        "env": [],
+        "meta": {},
+        "color": "#DDAA00"
+    },
+    {
+        "id": "visa-transform",
+        "type": "function",
+        "z": "visa-integration",
+        "name": "Transform to Visa Format",
+        "func": "// Transform internal format to Visa API format\nconst transaction = msg.payload;\n\nconst visaRequest = {\n    systemsTraceAuditNumber: transaction.transactionId.slice(-6),\n    retrievalReferenceNumber: transaction.transactionId.slice(-12),\n    localTransactionDateTime: transaction.timestamp,\n    acquiringBin: '408999',\n    acquirerCountryCode: '840',\n    primaryAccountNumber: transaction.cardNumber,\n    amount: transaction.amount,\n    currencyCode: getCurrencyCode(transaction.currency),\n    businessApplicationId: 'AA',\n    merchantCategoryCode: transaction.mcc || '5999'\n};\n\nmsg.payload = visaRequest;\nmsg.headers = {\n    'Content-Type': 'application/json',\n    'Authorization': 'Bearer ' + (process.env.VISA_API_KEY || 'test-key')\n};\n\nfunction getCurrencyCode(currency) {\n    const codes = {\n        'USD': '840',\n        'EUR': '978',\n        'GBP': '826'\n    };\n    return codes[currency] || '840';\n}\n\nreturn msg;",
+        "outputs": 1,
+        "noerr": 0,
+        "initialize": "",
+        "finalize": "",
+        "libs": [],
+        "x": 240,
+        "y": 40,
+        "wires": [["visa-api-call"]]
+    },
+    {
+        "id": "visa-api-call",
+        "type": "http request",
+        "z": "visa-integration",
+        "name": "Visa API Call",
+        "method": "POST",
+        "ret": "obj",
+        "paytoqs": "ignore",
+        "url": "https://sandbox.api.visa.com/VisaDirect/v1/pushfundstransactions",
+        "tls": "",
+        "persist": false,
+        "proxy": "",
+        "authType": "",
+        "senderr": false,
+        "x": 460,
+        "y": 40,
+        "wires": [["visa-response"]]
+    },
+    {
+        "id": "visa-response",
+        "type": "function",
+        "z": "visa-integration",
+        "name": "Transform Visa Response",
+        "func": "// Transform Visa response to internal format\nconst visaResponse = msg.payload;\n\nconst response = {\n    transactionId: msg.req.body.transactionId,\n    status: visaResponse.responseCode === '00' ? 'APPROVED' : 'DECLINED',\n    responseCode: visaResponse.responseCode,\n    responseMessage: visaResponse.responseMessage,\n    authorizationCode: visaResponse.authorizationIdResponse,\n    pspTransactionId: visaResponse.systemsTraceAuditNumber,\n    timestamp: new Date().toISOString(),\n    psp: 'VISA'\n};\n\nmsg.payload = response;\nreturn msg;",
+        "outputs": 1,
+        "noerr": 0,
+        "initialize": "",
+        "finalize": "",
+        "libs": [],
+        "x": 680,
+        "y": 40,
+        "wires": [[]]
+    }
+]
+
