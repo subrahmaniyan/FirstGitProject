@@ -1,0 +1,366 @@
+/* Payment Switch Application - Global Styles */
+
+// Import Google Fonts
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
+
+// Custom CSS Variables
+:root {
+  --primary-color: #0d6efd;
+  --secondary-color: #6c757d;
+  --success-color: #198754;
+  --danger-color: #dc3545;
+  --warning-color: #ffc107;
+  --info-color: #0dcaf0;
+  --light-color: #f8f9fa;
+  --dark-color: #212529;
+  --border-radius: 0.375rem;
+  --box-shadow: 0 0.125rem 0.25rem rgba(0, 0, 0, 0.075);
+  --transition: all 0.15s ease-in-out;
+  --font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+}
+
+// Global Styles
+* {
+  box-sizing: border-box;
+}
+
+html, body {
+  height: 100%;
+  margin: 0;
+  padding: 0;
+}
+
+body {
+  font-family: var(--font-family);
+  font-size: 0.875rem;
+  font-weight: 400;
+  line-height: 1.5;
+  color: var(--dark-color);
+  background-color: #f8f9fa;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+// Custom Bootstrap Overrides
+.btn {
+  border-radius: var(--border-radius);
+  font-weight: 500;
+  transition: var(--transition);
+  
+  &:focus {
+    box-shadow: 0 0 0 0.2rem rgba(var(--bs-primary-rgb), 0.25);
+  }
+}
+
+.card {
+  border: none;
+  border-radius: var(--border-radius);
+  box-shadow: var(--box-shadow);
+  transition: var(--transition);
+  
+  &:hover {
+    box-shadow: 0 0.5rem 1rem rgba(0, 0, 0, 0.15);
+  }
+}
+
+.form-control, .form-select {
+  border-radius: var(--border-radius);
+  border: 1px solid #ced4da;
+  transition: var(--transition);
+  
+  &:focus {
+    border-color: var(--primary-color);
+    box-shadow: 0 0 0 0.2rem rgba(13, 110, 253, 0.25);
+  }
+}
+
+// Status Indicators
+.status-indicator {
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  display: inline-block;
+  position: relative;
+  
+  &.status-online {
+    background-color: var(--success-color);
+    animation: pulse-green 2s infinite;
+  }
+  
+  &.status-offline {
+    background-color: var(--danger-color);
+    animation: pulse-red 2s infinite;
+  }
+  
+  &.status-warning {
+    background-color: var(--warning-color);
+    animation: pulse-yellow 2s infinite;
+  }
+}
+
+// Status Badge Styles
+.status-badge {
+  padding: 0.25rem 0.5rem;
+  border-radius: 0.25rem;
+  font-size: 0.75rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  
+  &.status-pending {
+    background-color: #fff3cd;
+    color: #856404;
+  }
+  
+  &.status-processing {
+    background-color: #cff4fc;
+    color: #055160;
+  }
+  
+  &.status-approved {
+    background-color: #d1e7dd;
+    color: #0f5132;
+  }
+  
+  &.status-declined {
+    background-color: #f8d7da;
+    color: #721c24;
+  }
+  
+  &.status-failed {
+    background-color: #f8d7da;
+    color: #721c24;
+  }
+}
+
+// Metric Cards
+.metric-card {
+  .card-body {
+    padding: 1.5rem;
+  }
+  
+  .metric-value {
+    font-size: 2rem;
+    font-weight: 700;
+    margin-bottom: 0.5rem;
+  }
+  
+  .metric-label {
+    font-size: 0.875rem;
+    font-weight: 500;
+    opacity: 0.8;
+  }
+  
+  .metric-icon {
+    font-size: 2.5rem;
+    opacity: 0.7;
+  }
+}
+
+// Navigation Styles
+.navbar-brand {
+  font-weight: 600;
+  font-size: 1.5rem;
+}
+
+.nav-link {
+  font-weight: 500;
+  transition: var(--transition);
+  
+  &:hover {
+    color: rgba(255, 255, 255, 0.8) !important;
+  }
+  
+  &.active {
+    background-color: rgba(255, 255, 255, 0.1);
+    border-radius: var(--border-radius);
+  }
+}
+
+// Table Styles
+.table {
+  th {
+    border-top: none;
+    font-weight: 600;
+    color: var(--dark-color);
+    background-color: var(--light-color);
+  }
+}
+
+// Loading Spinner
+.spinner-border-sm {
+  width: 1rem;
+  height: 1rem;
+}
+
+// Chart Container
+.chart-container {
+  position: relative;
+  height: 300px;
+  width: 100%;
+}
+
+// Animations
+@keyframes pulse-green {
+  0% {
+    box-shadow: 0 0 0 0 rgba(25, 135, 84, 0.7);
+  }
+  70% {
+    box-shadow: 0 0 0 10px rgba(25, 135, 84, 0);
+  }
+  100% {
+    box-shadow: 0 0 0 0 rgba(25, 135, 84, 0);
+  }
+}
+
+@keyframes pulse-red {
+  0% {
+    box-shadow: 0 0 0 0 rgba(220, 53, 69, 0.7);
+  }
+  70% {
+    box-shadow: 0 0 0 10px rgba(220, 53, 69, 0);
+  }
+  100% {
+    box-shadow: 0 0 0 0 rgba(220, 53, 69, 0);
+  }
+}
+
+@keyframes pulse-yellow {
+  0% {
+    box-shadow: 0 0 0 0 rgba(255, 193, 7, 0.7);
+  }
+  70% {
+    box-shadow: 0 0 0 10px rgba(255, 193, 7, 0);
+  }
+  100% {
+    box-shadow: 0 0 0 0 rgba(255, 193, 7, 0);
+  }
+}
+
+.fade-in {
+  animation: fadeIn 0.5s ease-in;
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+// Utility Classes
+.cursor-pointer {
+  cursor: pointer;
+}
+
+.text-truncate {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.border-start-primary {
+  border-left: 4px solid var(--primary-color) !important;
+}
+
+.border-start-success {
+  border-left: 4px solid var(--success-color) !important;
+}
+
+.border-start-warning {
+  border-left: 4px solid var(--warning-color) !important;
+}
+
+.border-start-danger {
+  border-left: 4px solid var(--danger-color) !important;
+}
+
+// Responsive Design
+@media (max-width: 768px) {
+  .navbar-brand {
+    font-size: 1.25rem;
+  }
+  
+  .metric-card .metric-value {
+    font-size: 1.5rem;
+  }
+  
+  .table-responsive {
+    font-size: 0.875rem;
+  }
+}
+
+@media (max-width: 576px) {
+  .card-body {
+    padding: 1rem;
+  }
+  
+  .btn {
+    font-size: 0.875rem;
+  }
+}
+
+// Dark Mode Support
+@media (prefers-color-scheme: dark) {
+  :root {
+    --light-color: #343a40;
+    --dark-color: #f8f9fa;
+  }
+  
+  body {
+    background-color: #1a1a1a;
+    color: #f8f9fa;
+  }
+  
+  .card {
+    background-color: #2d3748;
+    color: #f8f9fa;
+  }
+  
+  .form-control, .form-select {
+    background-color: #2d3748;
+    border-color: #4a5568;
+    color: #f8f9fa;
+  }
+}
+
+// Custom Scrollbar
+::-webkit-scrollbar {
+  width: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: #f1f1f1;
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb {
+  background: #c1c1c1;
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: #a8a8a8;
+}
+
+// Print Styles
+@media print {
+  .navbar,
+  .btn,
+  .dropdown {
+    display: none !important;
+  }
+  
+  .card {
+    border: 1px solid #dee2e6 !important;
+    box-shadow: none !important;
+  }
+  
+  .table {
+    font-size: 0.875rem;
+  }
+}
+
